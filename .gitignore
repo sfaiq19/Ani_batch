@@ -49,4 +49,5 @@ Thumbs.db
 *.tmp
 *.db
 data/
+bin/
 .superpowers/

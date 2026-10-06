@@ -17,7 +17,7 @@ from anibatch.core.models import (
 )
 from anibatch.providers.base import Provider
 
-NYAA_RSS_URL = "https://nyaa.si/?page=rss"
+NYAA_RSS_URL = "https://nyaa.si/"
 
 
 @dataclass
@@ -107,6 +107,8 @@ class NyaaProvider(Provider):
     @staticmethod
     def _extract_episode_number(raw_title: str) -> float | None:
         title = re.sub(r"\.(?:mkv|mp4|avi)$", "", raw_title, flags=re.IGNORECASE)
+        if "batch" in title.lower() or re.search(r"\b\d{1,4}\s*-\s*\d{1,4}\b", title):
+            return None
         # 1. SxxExx or Exx
         m = re.search(r"(?i)\b(?:S\d{1,2})?E(\d{1,4}(?:\.\d)?)(?:v\d+)?\b", title)
         if m:
@@ -125,7 +127,9 @@ class NyaaProvider(Provider):
     def _score_release(title: str, seeders: int) -> tuple[int, int]:
         t = title.lower()
         quality_score = 0
-        if "1080p" in t:
+        if "2160p" in t or "4k" in t:
+            quality_score = 4
+        elif "1080p" in t:
             quality_score = 3
         elif "720p" in t:
             quality_score = 2
@@ -140,10 +144,7 @@ class NyaaProvider(Provider):
 
         for child in elem:
             tag = child.tag
-            if (
-                tag.endswith((f"}}{tag_name}", f":{tag_name}"))
-                or tag == tag_name
-            ) and child.text:
+            if (tag.endswith((f"}}{tag_name}", f":{tag_name}")) or tag == tag_name) and child.text:
                 return child.text.strip()
         return ""
 
@@ -236,7 +237,9 @@ class NyaaProvider(Provider):
         if series_id.lower() in self._series_cache:
             return self._series_cache[series_id.lower()]
 
-        results = await self.search(series_id)
+        # Query using unslugified query with spaces so Nyaa doesn't treat hyphens as exclusions
+        search_query = series_id.replace("-", " ")
+        results = await self.search(search_query)
         for s in results:
             if s.id == slug or self._slugify(s.title) == slug or s.id == series_id:
                 return s
@@ -247,13 +250,35 @@ class NyaaProvider(Provider):
 
     async def get_episodes(self, series_id: str) -> list[ProviderEpisode]:
         """Retrieve list of available episodes for a series."""
-        xml_content = await self._fetch_rss(series_id)
+        # Resolve search query from cache or unslugify to avoid '-' exclusion operator
+        target_series = self._series_cache.get(self._slugify(series_id)) or self._series_cache.get(
+            series_id.lower()
+        )
+        search_query = target_series.title if target_series else series_id.replace("-", " ")
+        target_slug = target_series.id if target_series else self._slugify(series_id)
+
+        xml_content = await self._fetch_rss(search_query)
         items = self._parse_rss(xml_content)
 
         candidates_by_ep: dict[float, list[_NyaaRelease]] = {}
         no_ep_items: list[_NyaaRelease] = []
 
         for item in items:
+            # Filter releases belonging to this series
+            item_series = self._clean_series_title(item.title)
+            item_slug = self._slugify(item_series)
+            if (
+                target_slug
+                and item_slug
+                and target_slug not in item_slug
+                and item_slug not in target_slug
+            ):
+                continue
+
+            # Skip batch releases when collecting single episodes
+            if "batch" in item.title.lower() or re.search(r"\b\d{1,4}\s*-\s*\d{1,4}\b", item.title):
+                continue
+
             ep_num = self._extract_episode_number(item.title)
             if ep_num is not None:
                 candidates_by_ep.setdefault(ep_num, []).append(item)
@@ -301,12 +326,7 @@ class NyaaProvider(Provider):
             if t.endswith(".mp4") or "[mp4]" in t:
                 container = "mp4"
 
-            if (
-                "x265" in t
-                or "hevc" in t
-                or "h265" in t
-                or "h.265" in t
-            ):
+            if "x265" in t or "hevc" in t or "h265" in t or "h.265" in t:
                 codec = "h265"
 
         return EpisodeMedia(

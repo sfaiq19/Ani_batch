@@ -336,5 +336,32 @@ def import_queue(
     console.print(f"[bold green]Imported {len(jobs)} job(s) into queue.[/bold green]")
 
 
+@app.command()
+def web(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host address to bind."),
+    port: int = typer.Option(8000, "--port", "-p", help="Port to listen on."),
+    no_browser: bool = typer.Option(False, "--no-browser", help="Do not automatically open the web browser."),
+) -> None:
+    """Launch the AniBatch interactive local Web Dashboard."""
+    import time
+
+    from anibatch.web.server import AniBatchWebServer
+
+    service = get_service()
+    server = AniBatchWebServer(service=service, host=host, port=port)
+    server.start(open_browser=not no_browser)
+    console.print(f"[bold green]AniBatch Web Dashboard is running at http://{host}:{port}/[/bold green]")
+    console.print("[dim]Press Ctrl+C to exit.[/dim]")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Shutting down AniBatch Web Dashboard...[/yellow]")
+    finally:
+        server.stop()
+
+
 if __name__ == "__main__":
     app()
+

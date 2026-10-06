@@ -22,6 +22,8 @@ def test_cli_help() -> None:
     assert "providers" in result.stdout
     assert "doctor" in result.stdout
     assert "config" in result.stdout
+    assert "web" in result.stdout
+
 
 
 def test_cli_search_local_provider() -> None:
@@ -144,3 +146,12 @@ def test_cli_export_and_import_queue(tmp_path) -> None:
     res_imp = runner.invoke(app, ["import-queue", str(export_file)])
     assert res_imp.exit_code == 0
     assert "Imported" in res_imp.stdout
+
+
+def test_cli_web_help() -> None:
+    result = runner.invoke(app, ["web", "--help"])
+    assert result.exit_code == 0
+    assert "--host" in result.stdout
+    assert "--port" in result.stdout
+    assert "--no-browser" in result.stdout
+

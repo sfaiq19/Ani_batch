@@ -12,8 +12,7 @@ from anibatch.downloader.batch_parser import parse_episode_selection
 from anibatch.media.ffmpeg import FFmpegService
 from anibatch.metadata.anilist import AniListMetadataProvider
 from anibatch.naming.formatter import PathFormatter
-from anibatch.providers.registry import registry
-from anibatch.providers.test_provider.provider import TestProvider
+from anibatch.providers.registry import init_default_providers, registry
 from anibatch.storage.database import Database
 from anibatch.storage.migrations import run_migrations
 from anibatch.storage.repositories import SqliteAnimeRepository, SqliteJobRepository
@@ -37,10 +36,7 @@ class DownloadService:
             episode_template=self.config.naming.episode,
         )
         self.ffmpeg_service = FFmpegService()
-
-        # Ensure test provider is registered
-        if not registry.get("test"):
-            registry.register(TestProvider())
+        init_default_providers()
 
     async def init_db(self) -> None:
         async with self.database.connect() as conn:
@@ -242,10 +238,11 @@ class DownloadService:
 
         # 5. AniList API
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 res = await client.post(
                     "https://graphql.anilist.co",
-                    json={"query": "{ Site { id } }"},
+                    json={"query": "{ Page(page: 1, perPage: 1) { media(id: 1) { id } } }"},
+                    headers={"Content-Type": "application/json", "Accept": "application/json"},
                 )
                 results["anilist_reachable"] = res.status_code == 200
         except (httpx.HTTPError, TimeoutError, OSError):

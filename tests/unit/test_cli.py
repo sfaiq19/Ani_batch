@@ -1,6 +1,9 @@
+import pytest
+import respx
 from typer.testing import CliRunner
 
 from anibatch.cli.app import app
+from anibatch.services.download_service import DownloadService
 
 runner = CliRunner()
 
@@ -81,12 +84,44 @@ def test_cli_config() -> None:
     assert "Concurrency" in cfg_res.stdout
 
 
-def test_cli_doctor() -> None:
+def test_cli_doctor(respx_mock: respx.MockRouter) -> None:
+    respx_mock.post("https://graphql.anilist.co").respond(200, json={"data": {"Page": {"media": [{"id": 1}]}}})
+    respx_mock.get("https://archive.org/advancedsearch.php").respond(200, json={"response": {"docs": []}})
     doc_res = runner.invoke(app, ["doctor"])
     assert doc_res.exit_code == 0
     assert "System Diagnostics" in doc_res.stdout
     assert "FFmpeg" in doc_res.stdout
     assert "Database" in doc_res.stdout
+    assert "[OK] AniList: Reachable" in doc_res.stdout
+    assert "Provider (test): Online" in doc_res.stdout
+    assert "Provider (archive): Online" in doc_res.stdout
+
+
+def test_cli_doctor_offline(respx_mock: respx.MockRouter) -> None:
+    respx_mock.post("https://graphql.anilist.co").respond(500)
+    respx_mock.get("https://archive.org/advancedsearch.php").respond(200, json={"response": {"docs": []}})
+    doc_res = runner.invoke(app, ["doctor"])
+    assert doc_res.exit_code == 0
+    assert "[!] AniList: Offline / No internet" in doc_res.stdout
+
+
+@pytest.mark.asyncio
+async def test_download_service_run_diagnostics(respx_mock: respx.MockRouter) -> None:
+    respx_mock.post("https://graphql.anilist.co").respond(200, json={"data": {"Page": {"media": [{"id": 1}]}}})
+    respx_mock.get("https://archive.org/advancedsearch.php").respond(200, json={"response": {"docs": []}})
+    service = DownloadService()
+    diag = await service.run_diagnostics()
+    assert diag["anilist_reachable"] is True
+    assert diag["providers"]["test"] is True
+    assert diag["providers"]["archive"] is True
+
+    # Test error/offline branch
+    respx_mock.reset()
+    respx_mock.post("https://graphql.anilist.co").respond(500)
+    respx_mock.get("https://archive.org/advancedsearch.php").respond(500)
+    diag_offline = await service.run_diagnostics()
+    assert diag_offline["anilist_reachable"] is False
+    assert diag_offline["providers"]["archive"] is False
 
 
 def test_cli_json_flags() -> None:

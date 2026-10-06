@@ -1,0 +1,2037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniBatch &mdash; Local Web Dashboard</title>
+  <style>
+    :root {
+      --bg-base: #0b0f19;
+      --bg-surface: #121827;
+      --bg-surface-elevated: #1a2236;
+      --bg-glass: rgba(18, 24, 39, 0.75);
+      --bg-glass-card: rgba(26, 34, 54, 0.65);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(99, 102, 241, 0.4);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --secondary: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 25%, rgba(139, 92, 246, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    /* Container Layout */
+    .app-container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0 1.5rem 3rem;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: var(--bg-glass);
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 2rem;
+    }
+
+    .header-inner {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0.875rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .brand-logo-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: #ffffff;
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #ffffff 40%, var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--radius-full);
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--primary-light);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .providers-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .provider-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .provider-pill.active {
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+      display: inline-block;
+    }
+
+    .queue-quick-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.9rem;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+
+    .queue-quick-btn:hover {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--primary);
+    }
+
+    .queue-quick-count {
+      background: var(--primary);
+      color: #ffffff;
+      padding: 0.1rem 0.45rem;
+      border-radius: var(--radius-full);
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    /* Hero Search Bar */
+    .search-hero {
+      background: var(--bg-glass-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2rem 2.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-hero::before {
+      content: "";
+      position: absolute;
+      top: -50px;
+      left: 20%;
+      width: 250px;
+      height: 120px;
+      background: radial-gradient(ellipse, rgba(99, 102, 241, 0.18), transparent 70%);
+      pointer-events: none;
+    }
+
+    .search-hero-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.35rem;
+    }
+
+    .search-hero-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .provider-select-wrap {
+      flex: 0 0 160px;
+    }
+
+    .custom-select {
+      width: 100%;
+      height: 48px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0 0.85rem;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      font-weight: 500;
+      outline: none;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .custom-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .search-input-wrap {
+      flex: 1;
+      min-width: 280px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      width: 20px;
+      height: 20px;
+      fill: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 48px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0 1rem 0 2.85rem;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .btn-search {
+      height: 48px;
+      padding: 0 1.75rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition);
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-search:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-search:active {
+      transform: translateY(0);
+    }
+
+    .search-hints {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .hint-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 0.15rem 0.6rem;
+      cursor: pointer;
+      color: var(--text-main);
+      transition: var(--transition);
+    }
+
+    .hint-chip:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--primary);
+    }
+
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .badge-count {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: var(--radius-full);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Results Grid */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3.5rem;
+    }
+
+    /* Anime Card */
+    .anime-card {
+      background: var(--bg-glass-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .anime-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-hover);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .anime-cover-box {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: var(--bg-surface-elevated);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .anime-cover-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+
+    .anime-card:hover .anime-cover-img {
+      transform: scale(1.04);
+    }
+
+    .anime-fallback-cover {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #182236, #0e1424);
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .anime-fallback-cover svg {
+      width: 48px;
+      height: 48px;
+      fill: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+
+    .cover-badge-top-left {
+      position: absolute;
+      top: 0.65rem;
+      left: 0.65rem;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 0.15rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--primary-light);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cover-badge-top-right {
+      position: absolute;
+      top: 0.65rem;
+      right: 0.65rem;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 0.15rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .cover-badge-bottom-right {
+      position: absolute;
+      bottom: 0.65rem;
+      right: 0.65rem;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 0.15rem 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+    }
+
+    .anime-card-body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .anime-card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.4rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.35;
+      min-height: 2.7rem;
+    }
+
+    .anime-card-footer {
+      margin-top: auto;
+      padding-top: 0.75rem;
+    }
+
+    .btn-select-episodes {
+      width: 100%;
+      height: 38px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: var(--transition);
+    }
+
+    .btn-select-episodes:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    /* Empty & Loading States */
+    .empty-state {
+      grid-column: 1 / -1;
+      background: var(--bg-glass-card);
+      border: 1px dashed var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 4rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 1.25rem;
+      fill: var(--text-dim);
+    }
+
+    .empty-state-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state-desc {
+      font-size: 0.9rem;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+
+    /* Skeleton Loading */
+    .skeleton-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      aspect-ratio: 3 / 4;
+      position: relative;
+    }
+
+    .skeleton-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    /* Download Queue Panel */
+    .queue-panel {
+      background: var(--bg-glass-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem 2rem;
+      box-shadow: var(--shadow-md);
+    }
+
+    .queue-controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-secondary {
+      height: 36px;
+      padding: 0 0.95rem;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: var(--transition);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-top: 1.25rem;
+    }
+
+    .queue-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      transition: var(--transition);
+    }
+
+    .queue-item:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+      background: var(--bg-surface-elevated);
+    }
+
+    .queue-item-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .queue-item-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .queue-series-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+    }
+
+    .queue-ep-badge {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--primary-light);
+      padding: 0.1rem 0.5rem;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .queue-quality-badge {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 0.1rem 0.45rem;
+      border-radius: var(--radius-full);
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-badge.queued {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+    }
+
+    .status-badge.downloading {
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: #67e8f9;
+      animation: pulseGlow 2s infinite;
+    }
+
+    .status-badge.paused {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fcd34d;
+    }
+
+    .status-badge.completed {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+
+    .status-badge.failed {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .status-badge.cancelled {
+      background: rgba(148, 163, 184, 0.12);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #cbd5e1;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+
+    /* Progress Bar */
+    .progress-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent-cyan));
+      border-radius: var(--radius-full);
+      transition: width 0.3s ease;
+      position: relative;
+    }
+
+    .progress-fill.active-anim {
+      background-size: 24px 24px;
+      background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+      );
+      animation: progressStripes 1s linear infinite;
+    }
+
+    @keyframes progressStripes {
+      from { background-position: 24px 0; }
+      to { background-position: 0 0; }
+    }
+
+    .progress-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      width: 44px;
+      text-align: right;
+    }
+
+    /* Action Buttons in Queue */
+    .queue-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-action-icon {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-action-icon:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+    }
+
+    .btn-action-icon.danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-rose);
+      color: #fca5a5;
+    }
+
+    .btn-action-icon svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* Modal / Episode Selection Sheet */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(3, 7, 18, 0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-dialog {
+      width: 100%;
+      max-width: 660px;
+      max-height: 90vh;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-overlay.active .modal-dialog {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      padding: 1.25rem 1.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .modal-title-wrap {
+      min-width: 0;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-main);
+    }
+
+    .modal-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .modal-close-btn {
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      transition: var(--transition);
+    }
+
+    .modal-close-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      padding: 1.5rem 1.75rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Quick Presets Toolbar */
+    .quick-preset-bar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-preset {
+      padding: 0.4rem 0.8rem;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-preset:hover {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--primary);
+      color: var(--primary-light);
+    }
+
+    /* Range Input Bar */
+    .range-selector-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .range-input {
+      flex: 1;
+      height: 38px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0 0.85rem;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .range-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Episode Grid Pills */
+    .episodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+      gap: 0.5rem;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .episode-chip {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: var(--transition);
+    }
+
+    .episode-chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .episode-chip.selected {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    .modal-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .quality-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-footer {
+      padding: 1.25rem 1.75rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background: rgba(11, 15, 25, 0.4);
+    }
+
+    .btn-primary-action {
+      height: 42px;
+      padding: 0 1.5rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition);
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-primary-action:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--text-main);
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      pointer-events: auto;
+      transform: translateY(16px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      max-width: 380px;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .toast.success {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.15);
+      color: #d1fae5;
+    }
+
+    .toast.error {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.15);
+      color: #fee2e2;
+    }
+
+    .toast.info {
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.15);
+      color: #e0e7ff;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-meta {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .search-controls {
+        flex-direction: column;
+      }
+      .provider-select-wrap, .search-input-wrap, .btn-search {
+        width: 100%;
+      }
+      .queue-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.85rem;
+      }
+      .queue-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="header-inner">
+      <a href="/" class="brand-wrap">
+        <div class="brand-logo-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 4h16V6H4v2zm0 10h16v-8H4v8zm4-6l6 3.5L8 15v-7z"/>
+          </svg>
+        </div>
+        <span class="brand-title">AniBatch</span>
+        <span class="brand-badge">Local Dashboard</span>
+      </a>
+
+      <div class="header-meta">
+        <div class="providers-bar" id="providersBar">
+          <!-- Populated dynamically via JS -->
+          <span class="provider-pill"><span class="status-dot"></span> Providers</span>
+        </div>
+        <a href="#queueSection" class="queue-quick-btn" id="headerQueueBtn">
+          <span>Download Queue</span>
+          <span class="queue-quick-count" id="headerQueueCount">0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-container">
+
+    <!-- Search Hero -->
+    <section class="search-hero">
+      <h1 class="search-hero-title">Search Anime & Batch Download</h1>
+      <p class="search-hero-subtitle">High-speed batch automation with zero setup. Select episodes and enqueue effortlessly.</p>
+
+      <form id="searchForm" class="search-controls" onsubmit="event.preventDefault(); triggerSearch();">
+        <div class="provider-select-wrap">
+          <select id="providerSelect" class="custom-select" aria-label="Select Provider">
+            <option value="">All Providers</option>
+          </select>
+        </div>
+
+        <div class="search-input-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search anime title (e.g. Frieren, Jujutsu Kaisen)..." autocomplete="off" />
+        </div>
+
+        <button type="submit" id="searchBtn" class="btn-search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+          <span>Search</span>
+        </button>
+      </form>
+
+      <div class="search-hints">
+        <span>Popular:</span>
+        <button type="button" class="hint-chip" onclick="quickSearch('Frieren')">Frieren</button>
+        <button type="button" class="hint-chip" onclick="quickSearch('Attack on Titan')">Attack on Titan</button>
+        <button type="button" class="hint-chip" onclick="quickSearch('Jujutsu Kaisen')">Jujutsu Kaisen</button>
+        <button type="button" class="hint-chip" onclick="quickSearch('Demon Slayer')">Demon Slayer</button>
+      </div>
+    </section>
+
+    <!-- Search Results Section -->
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">
+          <span>Search Results</span>
+          <span class="badge-count" id="resultsCountBadge">0 found</span>
+        </h2>
+      </div>
+
+      <div class="results-grid" id="resultsGrid">
+        <div class="empty-state">
+          <svg class="empty-state-icon" viewBox="0 0 24 24">
+            <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/>
+          </svg>
+          <div class="empty-state-title">Ready to Explore</div>
+          <div class="empty-state-desc">Enter an anime title in the search box above to browse episodes and queue downloads.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download Queue Section -->
+    <section id="queueSection">
+      <div class="queue-panel">
+        <div class="section-header" style="margin-bottom: 0;">
+          <h2 class="section-title">
+            <span>Download Queue</span>
+            <span class="badge-count" id="queueCountBadge">0 jobs</span>
+          </h2>
+          <div class="queue-controls-bar">
+            <button type="button" class="btn-secondary" onclick="queueResumeAll()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              <span>Resume All</span>
+            </button>
+            <button type="button" class="btn-secondary" onclick="queuePauseAll()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+              </svg>
+              <span>Pause All</span>
+            </button>
+            <button type="button" class="btn-secondary" onclick="fetchQueue(true)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="queue-list" id="queueList">
+          <div class="empty-state" style="padding: 2.5rem 1rem;">
+            <div class="empty-state-title" style="font-size: 1.05rem;">Queue is empty</div>
+            <div class="empty-state-desc">Select episodes from anime cards above to queue downloads.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Episode Selection Modal -->
+  <div class="modal-overlay" id="episodeModal" onclick="handleModalBackdropClick(event)">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h3 class="modal-title" id="modalSeriesTitle">Series Title</h3>
+          <div class="modal-subtitle" id="modalSeriesSubtitle">Year &bull; Provider</div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeEpisodeModal()" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Quick Presets -->
+        <div>
+          <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 0.5rem;">Quick Select</div>
+          <div class="quick-preset-bar">
+            <button type="button" class="btn-preset" onclick="selectAllEpisodes()">All Episodes</button>
+            <button type="button" class="btn-preset" onclick="selectFirstNEpisodes(3)">First 3</button>
+            <button type="button" class="btn-preset" onclick="selectFirstNEpisodes(1)">First 1</button>
+            <button type="button" class="btn-preset" onclick="clearEpisodeSelection()">Clear All</button>
+          </div>
+        </div>
+
+        <!-- Custom Range -->
+        <div>
+          <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 0.5rem;">Custom Range</div>
+          <div class="range-selector-row">
+            <input type="text" id="customRangeInput" class="range-input" placeholder="e.g. 1-4, 7, 10-12" />
+            <button type="button" class="btn-preset" onclick="applyCustomRange()">Apply Range</button>
+          </div>
+        </div>
+
+        <!-- Episodes Grid -->
+        <div>
+          <div class="modal-meta-row" style="margin-bottom: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim);">Episodes</span>
+            <span id="modalSelectionCount" style="color: var(--primary-light); font-weight: 600;">0 selected</span>
+          </div>
+          <div class="episodes-grid" id="modalEpisodesGrid">
+            <!-- Dynamic episode chips -->
+          </div>
+        </div>
+
+        <!-- Quality Selection -->
+        <div class="modal-meta-row">
+          <span style="font-size: 0.85rem; font-weight: 600;">Download Quality</span>
+          <div class="quality-select-wrap">
+            <select id="modalQualitySelect" class="custom-select" style="height: 36px; padding: 0 0.75rem;">
+              <option value="1080p" selected>1080p (FHD)</option>
+              <option value="720p">720p (HD)</option>
+              <option value="480p">480p (SD)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeEpisodeModal()">Cancel</button>
+        <button type="button" class="btn-primary-action" id="modalSubmitBtn" onclick="submitDownloadBatch()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+          </svg>
+          <span id="modalSubmitText">Add to Queue</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Client JavaScript -->
+  <script>
+    // State
+    const state = {
+      providers: [],
+      currentAnime: null,
+      availableEpisodes: [],
+      selectedEpisodes: new Set(),
+      isPolling: true,
+      lastQueueCount: 0
+    };
+
+    // Initialize on DOM ready
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchProviders();
+      fetchQueue();
+
+      // Polling loop (every 1.5s)
+      setInterval(() => {
+        if (state.isPolling && document.visibilityState === "visible") {
+          fetchQueue(false);
+        }
+      }, 1500);
+
+      // Key listeners
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeEpisodeModal();
+        }
+      });
+    });
+
+    // Toast Notifications
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+
+      let iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+      if (type === "success") {
+        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+      } else if (type === "error") {
+        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';
+      }
+
+      toast.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.add("show");
+      });
+
+      setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Providers
+    async function fetchProviders() {
+      try {
+        const resp = await fetch("/api/providers");
+        if (!resp.ok) return;
+        const providers = await resp.json();
+        state.providers = providers;
+
+        const select = document.getElementById("providerSelect");
+        select.innerHTML = '<option value="">All Providers</option>';
+
+        const bar = document.getElementById("providersBar");
+        bar.innerHTML = "";
+
+        providers.forEach(p => {
+          // Dropdown option
+          const opt = document.createElement("option");
+          opt.value = p.name;
+          opt.textContent = p.name.toUpperCase();
+          select.appendChild(opt);
+
+          // Header pill
+          const pill = document.createElement("span");
+          pill.className = "provider-pill active";
+          pill.innerHTML = `<span class="status-dot"></span>${escapeHtml(p.name)}`;
+          bar.appendChild(pill);
+        });
+      } catch (err) {
+        console.warn("Failed to load providers:", err);
+      }
+    }
+
+    // Quick Search hint chips
+    function quickSearch(title) {
+      document.getElementById("searchInput").value = title;
+      triggerSearch();
+    }
+
+    // Search Trigger
+    async function triggerSearch() {
+      const query = document.getElementById("searchInput").value.trim();
+      const provider = document.getElementById("providerSelect").value;
+      if (!query) {
+        showToast("Please enter an anime title to search.", "info");
+        return;
+      }
+
+      const grid = document.getElementById("resultsGrid");
+      const badge = document.getElementById("resultsCountBadge");
+      const searchBtn = document.getElementById("searchBtn");
+
+      // Skeleton loading state
+      badge.textContent = "Searching...";
+      grid.innerHTML = Array(4).fill(0).map(() => '<div class="skeleton-card"></div>').join("");
+      searchBtn.disabled = true;
+
+      try {
+        let url = `/api/search?q=${encodeURIComponent(query)}`;
+        if (provider) {
+          url += `&provider=${encodeURIComponent(provider)}`;
+        }
+
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          throw new Error(`Server returned HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+
+        renderSearchResults(data);
+      } catch (err) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-title" style="color: var(--accent-rose);">Search Failed</div>
+            <div class="empty-state-desc">${escapeHtml(err.message)}</div>
+          </div>
+        `;
+        badge.textContent = "0 found";
+        showToast(`Search error: ${err.message}`, "error");
+      } finally {
+        searchBtn.disabled = false;
+      }
+    }
+
+    // Render Search Results
+    function renderSearchResults(items) {
+      const grid = document.getElementById("resultsGrid");
+      const badge = document.getElementById("resultsCountBadge");
+
+      if (!items || items.length === 0) {
+        badge.textContent = "0 found";
+        grid.innerHTML = `
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <div class="empty-state-title">No Anime Found</div>
+            <div class="empty-state-desc">Try checking the spelling or selecting another provider.</div>
+          </div>
+        `;
+        return;
+      }
+
+      badge.textContent = `${items.length} found`;
+      grid.innerHTML = "";
+
+      items.forEach(anime => {
+        const card = document.createElement("div");
+        card.className = "anime-card";
+
+        const sourceTag = anime.source || anime.provider || "ANILIST";
+        const yearTag = anime.year ? anime.year : "N/A";
+        const epCountTag = anime.episodes ? `${anime.episodes} Ep` : "Multi-Ep";
+
+        const coverHtml = anime.cover_url
+          ? `<img class="anime-cover-img" src="${escapeHtml(anime.cover_url)}" alt="${escapeHtml(anime.title)}" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'anime-fallback-cover\\'><svg viewBox=\\'0 0 24 24\\'><path d=\\'M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z\\'/></svg><span>${escapeHtml(anime.title)}</span></div>';" />`
+          : `<div class="anime-fallback-cover">
+               <svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+               <span style="font-weight: 600; font-size: 0.85rem;">${escapeHtml(anime.title)}</span>
+             </div>`;
+
+        card.innerHTML = `
+          <div class="anime-cover-box">
+            ${coverHtml}
+            <span class="cover-badge-top-left">${escapeHtml(sourceTag)}</span>
+            <span class="cover-badge-top-right">${escapeHtml(String(yearTag))}</span>
+            <span class="cover-badge-bottom-right">${escapeHtml(epCountTag)}</span>
+          </div>
+          <div class="anime-card-body">
+            <h4 class="anime-card-title" title="${escapeHtml(anime.title)}">${escapeHtml(anime.title)}</h4>
+            <div class="anime-card-footer">
+              <button type="button" class="btn-select-episodes">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+                </svg>
+                <span>Select Episodes</span>
+              </button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector(".btn-select-episodes").addEventListener("click", () => {
+          openEpisodeModal(anime);
+        });
+
+        grid.appendChild(card);
+      });
+    }
+
+    // Open Episode Selection Modal
+    async function openEpisodeModal(anime) {
+      state.currentAnime = anime;
+      state.selectedEpisodes.clear();
+
+      document.getElementById("modalSeriesTitle").textContent = anime.title;
+      document.getElementById("modalSeriesSubtitle").textContent = `${anime.year || "Release year N/A"} • Provider: ${(anime.source || anime.provider || "test").toUpperCase()}`;
+      document.getElementById("customRangeInput").value = "";
+
+      const episodesGrid = document.getElementById("modalEpisodesGrid");
+      episodesGrid.innerHTML = '<div style="color: var(--text-dim); padding: 1rem;">Loading episode data...</div>';
+
+      const modal = document.getElementById("episodeModal");
+      modal.classList.add("active");
+
+      // Attempt to fetch detailed episode data via /api/info
+      let epList = [];
+      const prov = anime.source && anime.source !== "anilist" ? anime.source : "test";
+      try {
+        const resp = await fetch(`/api/info?id=${encodeURIComponent(anime.id)}&provider=${encodeURIComponent(prov)}`);
+        if (resp.ok) {
+          const info = await resp.json();
+          if (info.episodes && info.episodes.length > 0) {
+            epList = info.episodes.map(e => ({ number: parseInt(e.number, 10), title: e.title }));
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch /api/info:", err);
+      }
+
+      // Fallback: generate based on anime.episodes count or default 12
+      if (epList.length === 0) {
+        const total = anime.episodes && anime.episodes > 0 ? anime.episodes : 12;
+        epList = Array.from({ length: total }, (_, i) => ({ number: i + 1, title: `Episode ${i + 1}` }));
+      }
+
+      state.availableEpisodes = epList;
+      renderEpisodeChips();
+      selectAllEpisodes(); // Default select all for convenience
+    }
+
+    function renderEpisodeChips() {
+      const grid = document.getElementById("modalEpisodesGrid");
+      grid.innerHTML = "";
+
+      state.availableEpisodes.forEach(ep => {
+        const chip = document.createElement("div");
+        chip.className = `episode-chip ${state.selectedEpisodes.has(ep.number) ? "selected" : ""}`;
+        chip.textContent = `Ep ${ep.number}`;
+        chip.title = ep.title || `Episode ${ep.number}`;
+
+        chip.addEventListener("click", () => {
+          if (state.selectedEpisodes.has(ep.number)) {
+            state.selectedEpisodes.delete(ep.number);
+            chip.classList.remove("selected");
+          } else {
+            state.selectedEpisodes.add(ep.number);
+            chip.classList.add("selected");
+          }
+          updateSelectionState();
+        });
+
+        grid.appendChild(chip);
+      });
+
+      updateSelectionState();
+    }
+
+    function updateSelectionState() {
+      const count = state.selectedEpisodes.size;
+      const total = state.availableEpisodes.length;
+      document.getElementById("modalSelectionCount").textContent = `${count} of ${total} selected`;
+
+      const submitBtn = document.getElementById("modalSubmitBtn");
+      submitBtn.disabled = count === 0;
+      document.getElementById("modalSubmitText").textContent = count > 0 ? `Queue ${count} Episode${count > 1 ? "s" : ""}` : "Select Episodes";
+    }
+
+    function selectAllEpisodes() {
+      state.selectedEpisodes.clear();
+      state.availableEpisodes.forEach(ep => state.selectedEpisodes.add(ep.number));
+      refreshChipSelectionClasses();
+    }
+
+    function selectFirstNEpisodes(n) {
+      state.selectedEpisodes.clear();
+      state.availableEpisodes.slice(0, n).forEach(ep => state.selectedEpisodes.add(ep.number));
+      refreshChipSelectionClasses();
+    }
+
+    function clearEpisodeSelection() {
+      state.selectedEpisodes.clear();
+      refreshChipSelectionClasses();
+    }
+
+    function applyCustomRange() {
+      const input = document.getElementById("customRangeInput").value.trim();
+      if (!input) return;
+
+      const parsedNums = parseRangeExpression(input);
+      state.selectedEpisodes.clear();
+
+      const availableNumSet = new Set(state.availableEpisodes.map(e => e.number));
+      parsedNums.forEach(num => {
+        if (availableNumSet.has(num)) {
+          state.selectedEpisodes.add(num);
+        }
+      });
+
+      refreshChipSelectionClasses();
+      showToast(`Selected ${state.selectedEpisodes.size} episodes from range`, "info");
+    }
+
+    function parseRangeExpression(str) {
+      const result = new Set();
+      const parts = str.split(",");
+      for (let p of parts) {
+        p = p.trim();
+        if (p.includes("-")) {
+          const [startStr, endStr] = p.split("-");
+          const start = parseInt(startStr, 10);
+          const end = parseInt(endStr, 10);
+          if (!isNaN(start) && !isNaN(end)) {
+            for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
+              result.add(i);
+            }
+          }
+        } else {
+          const single = parseInt(p, 10);
+          if (!isNaN(single)) result.add(single);
+        }
+      }
+      return result;
+    }
+
+    function refreshChipSelectionClasses() {
+      const chips = document.querySelectorAll(".episode-chip");
+      chips.forEach((chip, idx) => {
+        const ep = state.availableEpisodes[idx];
+        if (ep && state.selectedEpisodes.has(ep.number)) {
+          chip.classList.add("selected");
+        } else {
+          chip.classList.remove("selected");
+        }
+      });
+      updateSelectionState();
+    }
+
+    function closeEpisodeModal() {
+      const modal = document.getElementById("episodeModal");
+      modal.classList.remove("active");
+    }
+
+    function handleModalBackdropClick(e) {
+      if (e.target.id === "episodeModal") {
+        closeEpisodeModal();
+      }
+    }
+
+    // Submit Download Enqueue
+    async function submitDownloadBatch() {
+      if (!state.currentAnime || state.selectedEpisodes.size === 0) return;
+
+      const submitBtn = document.getElementById("modalSubmitBtn");
+      submitBtn.disabled = true;
+      document.getElementById("modalSubmitText").textContent = "Adding...";
+
+      const sortedNums = Array.from(state.selectedEpisodes).sort((a, b) => a - b);
+      const episodeRangeStr = formatEpisodeListToRange(sortedNums);
+      const quality = document.getElementById("modalQualitySelect").value;
+      const provider = state.currentAnime.source && state.currentAnime.source !== "anilist"
+        ? state.currentAnime.source
+        : (state.providers[0] ? state.providers[0].name : "test");
+
+      try {
+        const payload = {
+          series_id: String(state.currentAnime.id),
+          episodes: episodeRangeStr,
+          provider: provider,
+          quality: quality
+        };
+
+        const resp = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed with status ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        showToast(`Enqueued ${data.queued_count} episode(s) to download queue!`, "success");
+        closeEpisodeModal();
+        fetchQueue(true);
+      } catch (err) {
+        showToast(`Failed to enqueue: ${err.message}`, "error");
+      } finally {
+        submitBtn.disabled = false;
+        document.getElementById("modalSubmitText").textContent = "Add to Queue";
+      }
+    }
+
+    function formatEpisodeListToRange(numbers) {
+      if (!numbers || numbers.length === 0) return "";
+      // Compact list into 1-4, 6 format
+      const ranges = [];
+      let start = numbers[0];
+      let prev = numbers[0];
+
+      for (let i = 1; i < numbers.length; i++) {
+        const curr = numbers[i];
+        if (curr === prev + 1) {
+          prev = curr;
+        } else {
+          ranges.push(start === prev ? `${start}` : `${start}-${prev}`);
+          start = curr;
+          prev = curr;
+        }
+      }
+      ranges.push(start === prev ? `${start}` : `${start}-${prev}`);
+      return ranges.join(", ");
+    }
+
+    // Fetch and Render Download Queue
+    async function fetchQueue(isManual = false) {
+      try {
+        const resp = await fetch("/api/queue");
+        if (!resp.ok) return;
+        const jobs = await resp.json();
+
+        renderQueue(jobs);
+
+        if (isManual) {
+          showToast("Download queue refreshed", "info");
+        }
+      } catch (err) {
+        console.warn("Queue fetch error:", err);
+      }
+    }
+
+    function renderQueue(jobs) {
+      const container = document.getElementById("queueList");
+      const badge = document.getElementById("queueCountBadge");
+      const headerCount = document.getElementById("headerQueueCount");
+
+      if (!jobs || jobs.length === 0) {
+        badge.textContent = "0 jobs";
+        headerCount.textContent = "0";
+        container.innerHTML = `
+          <div class="empty-state" style="padding: 2.5rem 1rem;">
+            <div class="empty-state-title" style="font-size: 1.05rem;">Queue is empty</div>
+            <div class="empty-state-desc">Select episodes from anime cards above to queue downloads.</div>
+          </div>
+        `;
+        return;
+      }
+
+      badge.textContent = `${jobs.length} job${jobs.length > 1 ? "s" : ""}`;
+      const activeCount = jobs.filter(j => j.state === "queued" || j.state === "downloading").length;
+      headerCount.textContent = String(activeCount);
+
+      container.innerHTML = "";
+
+      jobs.forEach(job => {
+        const item = document.createElement("div");
+        item.className = "queue-item";
+
+        const stateStr = (job.state || "queued").toLowerCase();
+        let progressPct = 0;
+        if (job.bytes_total > 0) {
+          progressPct = Math.min(100, Math.round((job.bytes_downloaded / job.bytes_total) * 100));
+        } else if (stateStr === "completed") {
+          progressPct = 100;
+        }
+
+        const isDownloading = stateStr === "downloading";
+        const isQueued = stateStr === "queued";
+        const isPaused = stateStr === "paused";
+        const isTerminal = stateStr === "completed" || stateStr === "cancelled";
+
+        const seriesName = job.series_name || (job.anime_id ? formatFriendlyName(job.anime_id) : "Anime Series");
+        const epNum = formatEpisodeLabel(job.episode_number || job.episode_id || job.id);
+
+        item.innerHTML = `
+          <div class="queue-item-main">
+            <div class="queue-item-header">
+              <span class="queue-series-name" title="${escapeHtml(seriesName)}">${escapeHtml(seriesName)}</span>
+              <span class="queue-ep-badge">${escapeHtml(epNum)}</span>
+              <span class="queue-quality-badge">${escapeHtml(job.selected_quality || "1080p")}</span>
+              <span class="status-badge ${stateStr}">
+                ${getStatusIcon(stateStr)}
+                ${escapeHtml(stateStr.toUpperCase())}
+              </span>
+            </div>
+
+            <div class="progress-bar-wrap">
+              <div class="progress-track">
+                <div class="progress-fill ${isDownloading ? "active-anim" : ""}" style="width: ${progressPct}%;"></div>
+              </div>
+              <span class="progress-label">${progressPct}%</span>
+            </div>
+          </div>
+
+          <div class="queue-actions">
+            ${isDownloading || isQueued ? `
+              <button type="button" class="btn-action-icon" title="Pause Download" onclick="pauseJob('${escapeHtml(job.id)}')">
+                <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
+            ` : ""}
+
+            ${isPaused ? `
+              <button type="button" class="btn-action-icon" title="Resume Download" onclick="resumeJob('${escapeHtml(job.id)}')">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+            ` : ""}
+
+            ${!isTerminal ? `
+              <button type="button" class="btn-action-icon danger" title="Cancel Download" onclick="cancelJob('${escapeHtml(job.id)}')">
+                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
+            ` : ""}
+          </div>
+        `;
+
+        container.appendChild(item);
+      });
+    }
+
+    function formatFriendlyName(rawId) {
+      return String(rawId)
+        .replace(/^job-/, "")
+        .replace(/-\d+$/, "")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function formatEpisodeLabel(rawEp) {
+      const match = String(rawEp).match(/(\d+)/);
+      return match ? `Ep ${parseInt(match[1], 10)}` : String(rawEp);
+    }
+
+    function getStatusIcon(stateStr) {
+      if (stateStr === "downloading") {
+        return '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>';
+      }
+      if (stateStr === "completed") {
+        return '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+      }
+      if (stateStr === "paused") {
+        return '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+      }
+      return '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 14h-2V7h2v9z"/></svg>';
+    }
+
+    // Queue API Actions
+    async function pauseJob(jobId) {
+      try {
+        const resp = await fetch("/api/queue/pause", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: jobId })
+        });
+        if (resp.ok) {
+          showToast("Download paused", "info");
+          fetchQueue();
+        }
+      } catch (err) {
+        showToast(`Pause failed: ${err.message}`, "error");
+      }
+    }
+
+    async function resumeJob(jobId) {
+      try {
+        const resp = await fetch("/api/queue/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: jobId })
+        });
+        if (resp.ok) {
+          showToast("Download resumed", "success");
+          fetchQueue();
+        }
+      } catch (err) {
+        showToast(`Resume failed: ${err.message}`, "error");
+      }
+    }
+
+    async function cancelJob(jobId) {
+      if (!confirm("Are you sure you want to cancel this download?")) return;
+      try {
+        const resp = await fetch("/api/queue/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: jobId })
+        });
+        if (resp.ok) {
+          showToast("Job cancelled", "info");
+          fetchQueue();
+        }
+      } catch (err) {
+        showToast(`Cancel failed: ${err.message}`, "error");
+      }
+    }
+
+    async function queuePauseAll() {
+      try {
+        const resp = await fetch("/api/queue/pause", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        if (resp.ok) {
+          showToast("All downloads paused", "info");
+          fetchQueue();
+        }
+      } catch (err) {
+        showToast(`Error pausing queue: ${err.message}`, "error");
+      }
+    }
+
+    async function queueResumeAll() {
+      try {
+        const resp = await fetch("/api/queue/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        if (resp.ok) {
+          showToast("All downloads resumed", "success");
+          fetchQueue();
+        }
+      } catch (err) {
+        showToast(`Error resuming queue: ${err.message}`, "error");
+      }
+    }
+
+    // Utilities
+    function escapeHtml(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

@@ -155,6 +155,15 @@ def test_serve_dashboard_html(web_server: AniBatchWebServer) -> None:
     assert "text/html" in req.headers.get("Content-Type", "")
     content = req.read().decode()
     assert "AniBatch" in content
+    assert "Download Queue" in content
+    assert "Search Results" in content
+    assert "episodeModal" in content
+
+
+def test_favicon_handled(web_server: AniBatchWebServer) -> None:
+    port = web_server.server_port
+    req = urllib.request.urlopen(f"http://127.0.0.1:{port}/favicon.ico")
+    assert req.status == 204
 
 
 def test_not_found(web_server: AniBatchWebServer) -> None:

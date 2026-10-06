@@ -43,3 +43,7 @@ def init_default_providers() -> None:
         registry.register(TestProvider())
     if not registry.get("archive"):
         registry.register(ArchiveProvider())
+    if not registry.get("nyaa"):
+        from anibatch.providers.nyaa.provider import NyaaProvider
+
+        registry.register(NyaaProvider())

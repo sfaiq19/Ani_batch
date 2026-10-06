@@ -220,12 +220,9 @@ def history() -> None:
 @app.command()
 def providers() -> None:
     """List available media providers and their operational status."""
-    # Ensure test provider is registered
-    from anibatch.providers.test_provider.provider import TestProvider
+    from anibatch.providers.registry import init_default_providers
 
-    if not registry.get("test"):
-        registry.register(TestProvider())
-
+    init_default_providers()
     health = asyncio.run(registry.health_check_all())
 
     table = Table(title="Media Providers")

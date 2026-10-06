@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -33,10 +34,17 @@ def get_service() -> DownloadService:
 def search(
     query: str = typer.Argument(..., help="Title or keyword to search for."),
     provider: str = typer.Option("test", "--provider", "-p", help="Target provider."),
+    json_output: bool = typer.Option(False, "--json", help="Output results as JSON."),
 ) -> None:
     """Search for anime series across providers or metadata services."""
+    import json
+
     service = get_service()
     results = asyncio.run(service.search(query))
+
+    if json_output:
+        print(json.dumps(results, indent=2))
+        return
 
     if not results:
         console.print(f"[yellow]No results found for '{query}'.[/yellow]")
@@ -112,10 +120,18 @@ def download(
 
 
 @app.command()
-def queue() -> None:
+def queue(
+    json_output: bool = typer.Option(False, "--json", help="Output results as JSON."),
+) -> None:
     """Show active and pending download jobs."""
+    import json
+
     service = get_service()
     jobs = asyncio.run(service.list_jobs())
+
+    if json_output:
+        print(json.dumps([j.model_dump(mode="json") for j in jobs], indent=2))
+        return
 
     if not jobs:
         console.print("[yellow]Download queue is empty.[/yellow]")
@@ -267,6 +283,57 @@ def doctor() -> None:
         console.print(
             f"  {'[green][OK][/green]' if ok else '[red][X][/red]'} Provider ({p_name}): {'Online' if ok else 'Offline'}"
         )
+
+
+@app.command()
+def tui() -> None:
+    """Launch the interactive terminal user interface (TUI)."""
+    from anibatch.cli.tui import run_tui
+
+    run_tui()
+
+
+@app.command(name="export-queue")
+def export_queue(
+    output_file: Path = typer.Argument(..., help="Destination JSON file path."),
+) -> None:
+    """Export current download queue to a JSON file."""
+    import json
+
+    service = get_service()
+    jobs = asyncio.run(service.list_jobs())
+    data = [j.model_dump(mode="json") for j in jobs]
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    console.print(f"[bold green]Exported {len(data)} job(s) to {output_file}.[/bold green]")
+
+
+@app.command(name="import-queue")
+def import_queue(
+    input_file: Path = typer.Argument(..., help="Source JSON file path."),
+) -> None:
+    """Import download jobs from a JSON file into the queue."""
+    import json
+
+    from anibatch.core.models import DownloadJob
+    from anibatch.storage.repositories import SqliteJobRepository
+
+    if not input_file.exists():
+        console.print(f"[bold red]File not found: {input_file}[/bold red]")
+        return
+    data = json.loads(input_file.read_text(encoding="utf-8"))
+    jobs = [DownloadJob.model_validate(item) for item in data]
+    service = get_service()
+
+    async def _import() -> None:
+        await service.init_db()
+        async with service.database.connect() as conn:
+            repo = SqliteJobRepository(conn)
+            for j in jobs:
+                await repo.create_job(j)
+
+    asyncio.run(_import())
+    console.print(f"[bold green]Imported {len(jobs)} job(s) into queue.[/bold green]")
 
 
 if __name__ == "__main__":

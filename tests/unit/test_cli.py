@@ -87,3 +87,25 @@ def test_cli_doctor() -> None:
     assert "System Diagnostics" in doc_res.stdout
     assert "FFmpeg" in doc_res.stdout
     assert "Database" in doc_res.stdout
+
+
+def test_cli_json_flags() -> None:
+    res = runner.invoke(app, ["search", "Frieren", "--json"])
+    assert res.exit_code == 0
+    assert "[" in res.stdout
+    assert "Frieren" in res.stdout
+
+    q_res = runner.invoke(app, ["queue", "--json"])
+    assert q_res.exit_code == 0
+    assert "[" in q_res.stdout
+
+
+def test_cli_export_and_import_queue(tmp_path) -> None:
+    export_file = tmp_path / "queue_export.json"
+    res_exp = runner.invoke(app, ["export-queue", str(export_file)])
+    assert res_exp.exit_code == 0
+    assert export_file.exists()
+
+    res_imp = runner.invoke(app, ["import-queue", str(export_file)])
+    assert res_imp.exit_code == 0
+    assert "Imported" in res_imp.stdout

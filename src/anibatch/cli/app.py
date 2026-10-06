@@ -349,8 +349,14 @@ def web(
 
     service = get_service()
     server = AniBatchWebServer(service=service, host=host, port=port)
-    server.start(open_browser=not no_browser)
-    console.print(f"[bold green]AniBatch Web Dashboard is running at http://{host}:{port}/[/bold green]")
+    try:
+        server.start(open_browser=not no_browser)
+    except OSError as err:
+        console.print(f"[bold red]Failed to start web server on {host}:{port}: {err}[/bold red]")
+        raise typer.Exit(code=1) from err
+
+    active_port = server.server_port
+    console.print(f"[bold green]AniBatch Web Dashboard is running at http://{host}:{active_port}/[/bold green]")
     console.print("[dim]Press Ctrl+C to exit.[/dim]")
 
     try:

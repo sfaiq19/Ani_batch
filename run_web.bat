@@ -6,7 +6,7 @@ echo ========================================================
 echo.
 echo Starting AniBatch Web Dashboard...
 echo.
-uv run anibatch web
+uv run anibatch web %*
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo AniBatch encountered an error (exit code %ERRORLEVEL%).

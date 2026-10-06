@@ -19,7 +19,7 @@ class SqliteJobRepository(JobRepository):
     async def create_job(self, job: DownloadJob) -> None:
         await self.db.execute(
             """
-            INSERT INTO download_jobs (
+            INSERT OR REPLACE INTO download_jobs (
                 id, anime_id, episode_id, provider, state,
                 selected_quality, selected_audio, selected_subtitle,
                 destination, temporary_path, bytes_total, bytes_downloaded,

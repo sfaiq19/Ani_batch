@@ -153,9 +153,9 @@ class _AniBatchRequestHandler(http.server.BaseHTTPRequestHandler):
         else:
             html_text = (
                 "<!DOCTYPE html>\n"
-                "<html lang=\"en\">\n"
+                '<html lang="en">\n'
                 "<head>\n"
-                "  <meta charset=\"UTF-8\">\n"
+                '  <meta charset="UTF-8">\n'
                 "  <title>AniBatch Dashboard</title>\n"
                 "</head>\n"
                 "<body>\n"

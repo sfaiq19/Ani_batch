@@ -340,7 +340,9 @@ def import_queue(
 def web(
     host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host address to bind."),
     port: int = typer.Option(8000, "--port", "-p", help="Port to listen on."),
-    no_browser: bool = typer.Option(False, "--no-browser", help="Do not automatically open the web browser."),
+    no_browser: bool = typer.Option(
+        False, "--no-browser", help="Do not automatically open the web browser."
+    ),
 ) -> None:
     """Launch the AniBatch interactive local Web Dashboard."""
     import time
@@ -356,7 +358,9 @@ def web(
         raise typer.Exit(code=1) from err
 
     active_port = server.server_port
-    console.print(f"[bold green]AniBatch Web Dashboard is running at http://{host}:{active_port}/[/bold green]")
+    console.print(
+        f"[bold green]AniBatch Web Dashboard is running at http://{host}:{active_port}/[/bold green]"
+    )
     console.print("[dim]Press Ctrl+C to exit.[/dim]")
 
     try:
@@ -370,4 +374,3 @@ def web(
 
 if __name__ == "__main__":
     app()
-

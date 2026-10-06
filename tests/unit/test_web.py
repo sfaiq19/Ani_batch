@@ -52,7 +52,9 @@ def test_api_download_and_queue(web_server: AniBatchWebServer) -> None:
     port = web_server.server_port
 
     # 1. Enqueue job
-    payload = json.dumps({"series_id": "fake-frieren", "episodes": "1", "provider": "test"}).encode()
+    payload = json.dumps(
+        {"series_id": "fake-frieren", "episodes": "1", "provider": "test"}
+    ).encode()
     post_req = urllib.request.Request(
         f"http://127.0.0.1:{port}/api/download",
         data=payload,
@@ -77,7 +79,9 @@ def test_api_queue_pause_resume_cancel(web_server: AniBatchWebServer) -> None:
     port = web_server.server_port
 
     # Enqueue a job
-    payload = json.dumps({"series_id": "fake-frieren", "episodes": "1", "provider": "test"}).encode()
+    payload = json.dumps(
+        {"series_id": "fake-frieren", "episodes": "1", "provider": "test"}
+    ).encode()
     post_req = urllib.request.Request(
         f"http://127.0.0.1:{port}/api/download",
         data=payload,
@@ -95,7 +99,9 @@ def test_api_queue_pause_resume_cancel(web_server: AniBatchWebServer) -> None:
     pause_resp = urllib.request.urlopen(pause_req)
     assert pause_resp.status == 200
 
-    q_data = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/api/queue").read().decode())
+    q_data = json.loads(
+        urllib.request.urlopen(f"http://127.0.0.1:{port}/api/queue").read().decode()
+    )
     job = next(j for j in q_data if j["id"] == "job-fake-frieren-01")
     assert job["state"] == "paused"
 
@@ -108,7 +114,9 @@ def test_api_queue_pause_resume_cancel(web_server: AniBatchWebServer) -> None:
     resume_resp = urllib.request.urlopen(resume_req)
     assert resume_resp.status == 200
 
-    q_data = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/api/queue").read().decode())
+    q_data = json.loads(
+        urllib.request.urlopen(f"http://127.0.0.1:{port}/api/queue").read().decode()
+    )
     job = next(j for j in q_data if j["id"] == "job-fake-frieren-01")
     assert job["state"] == "queued"
 
@@ -131,7 +139,9 @@ def test_api_queue_pause_resume_cancel(web_server: AniBatchWebServer) -> None:
     cancel_resp = urllib.request.urlopen(cancel_req)
     assert cancel_resp.status == 200
 
-    q_data = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/api/queue").read().decode())
+    q_data = json.loads(
+        urllib.request.urlopen(f"http://127.0.0.1:{port}/api/queue").read().decode()
+    )
     job = next(j for j in q_data if j["id"] == "job-fake-frieren-01")
     assert job["state"] == "cancelled"
 
@@ -210,4 +220,3 @@ def test_server_lifecycle_and_loop_property(tmp_path: Path) -> None:
     server.stop()
     # Idempotent stop
     server.stop()
-

@@ -25,7 +25,6 @@ def test_cli_help() -> None:
     assert "web" in result.stdout
 
 
-
 def test_cli_search_local_provider() -> None:
     result = runner.invoke(app, ["search", "Frieren"])
     assert result.exit_code == 0
@@ -87,8 +86,12 @@ def test_cli_config() -> None:
 
 
 def test_cli_doctor(respx_mock: respx.MockRouter) -> None:
-    respx_mock.post("https://graphql.anilist.co").respond(200, json={"data": {"Page": {"media": [{"id": 1}]}}})
-    respx_mock.get("https://archive.org/advancedsearch.php").respond(200, json={"response": {"docs": []}})
+    respx_mock.post("https://graphql.anilist.co").respond(
+        200, json={"data": {"Page": {"media": [{"id": 1}]}}}
+    )
+    respx_mock.get("https://archive.org/advancedsearch.php").respond(
+        200, json={"response": {"docs": []}}
+    )
     doc_res = runner.invoke(app, ["doctor"])
     assert doc_res.exit_code == 0
     assert "System Diagnostics" in doc_res.stdout
@@ -101,7 +104,9 @@ def test_cli_doctor(respx_mock: respx.MockRouter) -> None:
 
 def test_cli_doctor_offline(respx_mock: respx.MockRouter) -> None:
     respx_mock.post("https://graphql.anilist.co").respond(500)
-    respx_mock.get("https://archive.org/advancedsearch.php").respond(200, json={"response": {"docs": []}})
+    respx_mock.get("https://archive.org/advancedsearch.php").respond(
+        200, json={"response": {"docs": []}}
+    )
     doc_res = runner.invoke(app, ["doctor"])
     assert doc_res.exit_code == 0
     assert "[!] AniList: Offline / No internet" in doc_res.stdout
@@ -109,8 +114,12 @@ def test_cli_doctor_offline(respx_mock: respx.MockRouter) -> None:
 
 @pytest.mark.asyncio
 async def test_download_service_run_diagnostics(respx_mock: respx.MockRouter) -> None:
-    respx_mock.post("https://graphql.anilist.co").respond(200, json={"data": {"Page": {"media": [{"id": 1}]}}})
-    respx_mock.get("https://archive.org/advancedsearch.php").respond(200, json={"response": {"docs": []}})
+    respx_mock.post("https://graphql.anilist.co").respond(
+        200, json={"data": {"Page": {"media": [{"id": 1}]}}}
+    )
+    respx_mock.get("https://archive.org/advancedsearch.php").respond(
+        200, json={"response": {"docs": []}}
+    )
     service = DownloadService()
     diag = await service.run_diagnostics()
     assert diag["anilist_reachable"] is True
@@ -154,4 +163,3 @@ def test_cli_web_help() -> None:
     assert "--host" in result.stdout
     assert "--port" in result.stdout
     assert "--no-browser" in result.stdout
-

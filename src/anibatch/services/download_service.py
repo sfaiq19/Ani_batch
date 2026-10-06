@@ -205,6 +205,58 @@ class DownloadService:
                 await job_repo.update_job(j)
             return len(paused)
 
+    async def resume_job(self, job_id: str) -> bool:
+        await self.init_db()
+        async with self.database.connect() as conn:
+            job_repo = SqliteJobRepository(conn)
+            job = await job_repo.get_job(job_id)
+            if job and job.state == DownloadState.PAUSED:
+                job.state = DownloadState.QUEUED
+                await job_repo.update_job(job)
+                return True
+            return False
+
+    async def get_queue_details(self) -> list[dict[str, Any]]:
+        """Retrieve queue jobs enriched with anime metadata."""
+        await self.init_db()
+        async with self.database.connect() as conn:
+            job_repo = SqliteJobRepository(conn)
+            anime_repo = SqliteAnimeRepository(conn)
+            jobs = await job_repo.list_jobs()
+            results: list[dict[str, Any]] = []
+            cached_titles: dict[str, str] = {}
+            for j in jobs:
+                anime_key = str(j.anime_id)
+                if anime_key not in cached_titles:
+                    anime = await anime_repo.get_anime(anime_key)
+                    cached_titles[anime_key] = anime.title if anime else anime_key
+                data = j.model_dump(mode="json")
+                data["series_name"] = cached_titles[anime_key]
+                ep_str = str(j.episode_id)
+                data["episode_number"] = ep_str.split("-")[-1] if "-" in ep_str else ep_str
+                results.append(data)
+            return results
+
+    def list_providers(self) -> list[dict[str, Any]]:
+        """List registered providers and their capabilities."""
+        init_default_providers()
+        results: list[dict[str, Any]] = []
+        for name in registry.list_available():
+            p = registry.get(name)
+            if p:
+                results.append(
+                    {
+                        "name": p.name,
+                        "capabilities": {
+                            "search": p.capabilities.search,
+                            "episode_listing": p.capabilities.episode_listing,
+                            "direct_download": p.capabilities.direct_download,
+                            "subtitles": p.capabilities.subtitles,
+                        },
+                    }
+                )
+        return results
+
     async def list_history(self) -> list[dict[str, Any]]:
         await self.init_db()
         async with self.database.connect() as conn:

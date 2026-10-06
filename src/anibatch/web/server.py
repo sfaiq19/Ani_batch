@@ -11,12 +11,8 @@ from collections.abc import Coroutine
 from pathlib import Path
 from typing import Any, TypeVar
 
-import aiosqlite
-
-from anibatch.core.enums import DownloadState
 from anibatch.providers.registry import init_default_providers, registry
 from anibatch.services.download_service import DownloadService
-from anibatch.storage.repositories import SqliteJobRepository
 
 logger = logging.getLogger("anibatch.web")
 
@@ -171,6 +167,10 @@ class _AniBatchRequestHandler(http.server.BaseHTTPRequestHandler):
         self._send_html(html_text)
 
     def _handle_get_providers(self) -> None:
+        service = self.server.web_server.service
+        if hasattr(service, "list_providers"):
+            self._send_json(service.list_providers())
+            return
         init_default_providers()
         provs = []
         for name in registry.list_available():
@@ -242,35 +242,17 @@ class _AniBatchRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def _handle_get_queue(self) -> None:
         service = self.server.web_server.service
-
-        async def _queue() -> list[dict[str, Any]]:
-            if hasattr(service, "get_queue"):
-                jobs = await service.get_queue()
-            else:
-                jobs = await service.list_jobs()
-
-            titles: dict[str, str] = {}
-            if hasattr(service, "database"):
-                try:
-                    async with service.database.connect() as conn:
-                        cursor = await conn.execute("SELECT id, title FROM anime")
-                        rows = await cursor.fetchall()
-                        titles = {str(r[0]): str(r[1]) for r in rows}
-                except (aiosqlite.Error, OSError) as e:
-                    logger.debug("Failed to query anime titles: %s", e)
-
-            result: list[dict[str, Any]] = []
-            for j in jobs:
-                d = j.model_dump(mode="json") if hasattr(j, "model_dump") else dict(j)
-                anime_id = str(d.get("anime_id", ""))
-                d["series_name"] = titles.get(anime_id, anime_id)
-                ep_id = str(d.get("episode_id", ""))
-                d["episode_number"] = ep_id
-                result.append(d)
-            return result
-
         try:
-            jobs = self._run_async(_queue())
+            if hasattr(service, "get_queue_details"):
+                jobs = self._run_async(service.get_queue_details())
+            elif hasattr(service, "get_queue"):
+                jobs = self._run_async(service.get_queue())
+            else:
+                raw_jobs = self._run_async(service.list_jobs())
+                jobs = [
+                    j.model_dump(mode="json") if hasattr(j, "model_dump") else dict(j)
+                    for j in raw_jobs
+                ]
             self._send_json(jobs)
         except Exception as e:  # noqa: BLE001
             self._send_error_json(str(e), 500)
@@ -340,15 +322,11 @@ class _AniBatchRequestHandler(http.server.BaseHTTPRequestHandler):
         service = self.server.web_server.service
 
         async def _resume() -> Any:
-            if job_id and hasattr(service, "database"):
-                await service.init_db()
-                async with service.database.connect() as conn:
-                    job_repo = SqliteJobRepository(conn)
-                    job = await job_repo.get_job(str(job_id))
-                    if job and job.state == DownloadState.PAUSED:
-                        job.state = DownloadState.QUEUED
-                        await job_repo.update_job(job)
-                        return {"status": "resumed", "job_id": job_id}
+            if job_id:
+                if hasattr(service, "resume_job"):
+                    success = await service.resume_job(str(job_id))
+                    return {"status": "resumed" if success else "not_found", "job_id": job_id}
+                return {"status": "resumed", "job_id": job_id}
             if hasattr(service, "resume_queue"):
                 count = await service.resume_queue()
             else:

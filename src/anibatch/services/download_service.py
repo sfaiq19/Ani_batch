@@ -42,9 +42,51 @@ class DownloadService:
         async with self.database.connect() as conn:
             await run_migrations(conn)
 
-    async def search(self, query: str) -> list[dict[str, Any]]:
-        """Search metadata via AniList, with fallback to provider search."""
+    async def search(self, query: str, provider: str | None = None) -> list[dict[str, Any]]:
+        """Search anime across providers and metadata sources."""
+        init_default_providers()
         results: list[dict[str, Any]] = []
+
+        # 1. Search specific provider if requested
+        if provider and provider not in ("all", "anilist"):
+            prov = registry.get(provider)
+            if prov:
+                try:
+                    p_results = await prov.search(query)
+                    for ps in p_results:
+                        results.append(
+                            {
+                                "id": ps.id,
+                                "title": ps.title,
+                                "year": ps.year,
+                                "episodes": ps.episode_count,
+                                "source": provider,
+                            }
+                        )
+                except (AniBatchError, OSError):
+                    pass
+            return results
+
+        # 2. Search local download providers first so downloadable entries are prominent
+        for p_name in registry.list_available():
+            prov = registry.get(p_name)
+            if prov:
+                try:
+                    p_results = await prov.search(query)
+                    for ps in p_results:
+                        results.append(
+                            {
+                                "id": ps.id,
+                                "title": ps.title,
+                                "year": ps.year,
+                                "episodes": ps.episode_count,
+                                "source": p_name,
+                            }
+                        )
+                except (AniBatchError, OSError):
+                    pass
+
+        # 3. Query AniList metadata catalog
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 anilist = AniListMetadataProvider(client=client)
@@ -62,24 +104,6 @@ class DownloadService:
         except (httpx.HTTPError, TimeoutError, OSError):
             pass
 
-        if not results:
-            for p_name in registry.list_available():
-                prov = registry.get(p_name)
-                if prov:
-                    try:
-                        p_results = await prov.search(query)
-                        for ps in p_results:
-                            results.append(
-                                {
-                                    "id": ps.id,
-                                    "title": ps.title,
-                                    "year": ps.year,
-                                    "episodes": ps.episode_count,
-                                    "source": p_name,
-                                }
-                            )
-                    except (AniBatchError, OSError):
-                        pass
         return results
 
     async def get_series_info(self, series_id: str, provider_name: str = "test") -> dict[str, Any]:
@@ -113,7 +137,13 @@ class DownloadService:
         if not prov:
             raise ValueError(f"Unknown provider '{provider_name}'")
 
-        series = await prov.get_series(series_id)
+        try:
+            series = await prov.get_series(series_id)
+        except Exception as exc:
+            raise ValueError(
+                f"Anime series '{series_id}' is not hosted by provider '{provider_name}'. "
+                f"Please select an anime hosted on '{provider_name}' or check your provider settings."
+            ) from exc
         all_episodes = await prov.get_episodes(series_id)
         total_ep_count = len(all_episodes)
 

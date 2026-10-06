@@ -1242,11 +1242,11 @@
       </form>
 
       <div class="search-hints">
-        <span>Popular:</span>
+        <span>Try Demo Shows:</span>
         <button type="button" class="hint-chip" onclick="quickSearch('Frieren')">Frieren</button>
         <button type="button" class="hint-chip" onclick="quickSearch('Attack on Titan')">Attack on Titan</button>
-        <button type="button" class="hint-chip" onclick="quickSearch('Jujutsu Kaisen')">Jujutsu Kaisen</button>
-        <button type="button" class="hint-chip" onclick="quickSearch('Demon Slayer')">Demon Slayer</button>
+        <button type="button" class="hint-chip" onclick="quickSearch('Steins;Gate')">Steins;Gate</button>
+        <button type="button" class="hint-chip" onclick="quickSearch('Delicious in Dungeon')">Delicious in Dungeon</button>
       </div>
     </section>
 
@@ -1627,7 +1627,9 @@
       state.selectedEpisodes.clear();
 
       document.getElementById("modalSeriesTitle").textContent = anime.title;
-      document.getElementById("modalSeriesSubtitle").textContent = `${anime.year || "Release year N/A"} • Provider: ${(anime.source || anime.provider || "test").toUpperCase()}`;
+      const isAniList = anime.source === "anilist";
+      const sourceLabel = isAniList ? "AniList (Metadata Only)" : `${(anime.source || anime.provider || "test").toUpperCase()} (Download Ready)`;
+      document.getElementById("modalSeriesSubtitle").textContent = `${anime.year || "Release year N/A"} • ${sourceLabel}`;
       document.getElementById("customRangeInput").value = "";
 
       const episodesGrid = document.getElementById("modalEpisodesGrid");
@@ -1819,7 +1821,11 @@
         closeEpisodeModal();
         fetchQueue(true);
       } catch (err) {
-        showToast(`Failed to enqueue: ${err.message}`, "error");
+        let msg = err.message || "Failed to enqueue";
+        if (msg.includes("404") || msg.includes("not hosted") || msg.includes("not found")) {
+          msg = `This anime is not hosted by download provider '${provider}'. Try testing with 'Frieren' or 'Attack on Titan' on the TEST provider!`;
+        }
+        showToast(msg, "error");
       } finally {
         submitBtn.disabled = false;
         document.getElementById("modalSubmitText").textContent = "Add to Queue";

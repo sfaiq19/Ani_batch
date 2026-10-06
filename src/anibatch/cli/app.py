@@ -358,6 +358,11 @@ def web(
         raise typer.Exit(code=1) from err
 
     active_port = server.server_port
+    if active_port != port:
+        console.print(
+            f"[yellow]Port {port} is in use by another application (e.g. Splunk).[/yellow]\n"
+            f"[yellow]Automatically switched to port {active_port}.[/yellow]"
+        )
     console.print(
         f"[bold green]AniBatch Web Dashboard is running at http://{host}:{active_port}/[/bold green]"
     )

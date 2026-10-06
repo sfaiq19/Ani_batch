@@ -23,6 +23,7 @@ class _AniBatchThreadingHTTPServer(http.server.ThreadingHTTPServer):
     """Custom ThreadingHTTPServer keeping a reference to the AniBatchWebServer."""
 
     daemon_threads = True
+    allow_reuse_address = True
 
     def __init__(
         self,
@@ -384,7 +385,7 @@ class AniBatchWebServer:
             raise RuntimeError("Event loop is not running. Call start() first.")
         return self._loop
 
-    def start(self, open_browser: bool = False) -> None:
+    def start(self, open_browser: bool = False, auto_port: bool = True) -> None:
         """Start the background event loop and HTTP server."""
         if self._is_running:
             return
@@ -404,13 +405,36 @@ class AniBatchWebServer:
         )
         self._loop_thread.start()
 
-        # 2. Start ThreadingHTTPServer
-        self._server = _AniBatchThreadingHTTPServer(
-            (self.host, self.port),
-            _AniBatchRequestHandler,
-            self,
-        )
-        # Store actual bound port (in case port was 0)
+        # 2. Start ThreadingHTTPServer with fallback port resolution
+        candidate_ports = [self.port]
+        if auto_port and self.port != 0:
+            # Common fallback ports if default is busy/forbidden (e.g. Splunk on 8000)
+            fallback_list = [8080, 8088, 8765, 8001, 8002, 8003]
+            for fb in fallback_list:
+                if fb not in candidate_ports:
+                    candidate_ports.append(fb)
+
+        server: _AniBatchThreadingHTTPServer | None = None
+        last_error: OSError | None = None
+        for p in candidate_ports:
+            try:
+                server = _AniBatchThreadingHTTPServer(
+                    (self.host, p),
+                    _AniBatchRequestHandler,
+                    self,
+                )
+                break
+            except OSError as err:
+                last_error = err
+                logger.debug("Port %d unavailable (%s), trying next candidate", p, err)
+                continue
+
+        if server is None:
+            if last_error:
+                raise last_error
+            raise RuntimeError(f"Could not bind to {self.host} on any candidate port")
+
+        self._server = server
         self.server_port = self._server.server_address[1]
 
         self._server_thread = threading.Thread(

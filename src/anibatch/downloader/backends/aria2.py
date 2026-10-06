@@ -20,7 +20,19 @@ class Aria2Backend(DownloadBackend):
     @staticmethod
     def _find_binary() -> Path | None:
         which = shutil.which("aria2c")
-        return Path(which) if which else None
+        if which:
+            return Path(which)
+        # Check project-relative bin directory
+        local_candidates = [
+            Path("bin/aria2c.exe"),
+            Path("bin/aria2c"),
+            Path(__file__).resolve().parents[3] / "bin" / "aria2c.exe",
+            Path(__file__).resolve().parents[3] / "bin" / "aria2c",
+        ]
+        for candidate in local_candidates:
+            if candidate.is_file():
+                return candidate.resolve()
+        return None
 
     def is_available(self) -> bool:
         return self.aria2c_path is not None
@@ -53,6 +65,8 @@ class Aria2Backend(DownloadBackend):
             "--split=4",
             "--min-split-size=1M",
             "--summary-interval=1",
+            "--follow-torrent=mem",
+            "--seed-time=0",
             stream_url,
         ]
 
@@ -70,13 +84,23 @@ class Aria2Backend(DownloadBackend):
                 f"aria2c execution failed with code {proc.returncode}: {stderr.decode(errors='replace')}"
             )
 
+        source_path = part_path
+        if not source_path.exists():
+            candidates = [
+                p
+                for p in part_path.parent.iterdir()
+                if p != dest_path and not p.name.endswith(".part")
+            ]
+            if candidates:
+                source_path = max(candidates, key=lambda p: p.stat().st_size)
+
         # Verification step
-        verify_downloaded_file(part_path)
+        verify_downloaded_file(source_path)
 
         # Atomic finalization
         if dest_path.exists():
             dest_path.unlink()
-        part_path.replace(dest_path)
+        source_path.replace(dest_path)
 
         return dest_path
 

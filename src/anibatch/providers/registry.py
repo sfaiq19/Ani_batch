@@ -32,3 +32,14 @@ class ProviderRegistry:
 
 # Default global registry singleton
 registry = ProviderRegistry()
+
+
+def init_default_providers() -> None:
+    """Register standard built-in providers."""
+    from anibatch.providers.archive.provider import ArchiveProvider
+    from anibatch.providers.test_provider.provider import TestProvider
+
+    if not registry.get("test"):
+        registry.register(TestProvider())
+    if not registry.get("archive"):
+        registry.register(ArchiveProvider())

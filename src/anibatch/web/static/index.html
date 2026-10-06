@@ -1180,6 +1180,11 @@
 </head>
 <body>
 
+  <!-- Connection / Environment Warning Banner -->
+  <div id="connectionBanner" style="display: none; background: #dc2626; color: #ffffff; text-align: center; padding: 0.85rem 1.5rem; font-size: 0.95rem; font-weight: 600; z-index: 9999; position: sticky; top: 0; box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
+    <span id="connectionBannerText"></span>
+  </div>
+
   <!-- App Header -->
   <header>
     <div class="header-inner">
@@ -1389,8 +1394,33 @@
       lastQueueCount: 0
     };
 
+    function showBanner(html) {
+      const banner = document.getElementById("connectionBanner");
+      const text = document.getElementById("connectionBannerText");
+      if (banner && text) {
+        text.innerHTML = html;
+        banner.style.display = "block";
+      }
+    }
+
+    function formatFetchError(err) {
+      if (err.name === "TypeError" || (err.message && err.message.toLowerCase().includes("fetch"))) {
+        return "Cannot connect to AniBatch backend. Please ensure 'uv run anibatch web' or 'run_web.bat' is running in PowerShell on port 8080.";
+      }
+      return err.message || "An unexpected error occurred.";
+    }
+
+    function checkEnvironment() {
+      if (window.location.protocol === "file:") {
+        showBanner("⚠️ You are viewing index.html directly from disk (file://). AniBatch requires the local backend to be running. Please run <code>run_web.bat</code> or <code>uv run anibatch web</code> and navigate to <a href='http://127.0.0.1:8080/' style='color: #ffffff; text-decoration: underline; font-weight: 700;'>http://127.0.0.1:8080/</a>.");
+      } else if (window.location.port === "8000") {
+        showBanner("⚠️ Port 8000 is occupied by Splunk on your machine. AniBatch runs on port 8080. Please open <a href='http://127.0.0.1:8080/' style='color: #ffffff; text-decoration: underline; font-weight: 700;'>http://127.0.0.1:8080/</a>.");
+      }
+    }
+
     // Initialize on DOM ready
     document.addEventListener("DOMContentLoaded", () => {
+      checkEnvironment();
       fetchProviders();
       fetchQueue();
 
@@ -1464,6 +1494,13 @@
         });
       } catch (err) {
         console.warn("Failed to load providers:", err);
+        const bar = document.getElementById("providersBar");
+        if (bar) {
+          bar.innerHTML = '<span class="provider-pill" style="border-color: rgba(239, 68, 68, 0.4); color: var(--accent-rose);"><span class="status-dot" style="background: var(--accent-rose);"></span> Server Offline</span>';
+        }
+        if (window.location.protocol !== "file:" && window.location.port !== "8000") {
+          showBanner("⚠️ Cannot connect to AniBatch backend. Make sure the server is running in terminal (<code>uv run anibatch web</code> or double-click <code>run_web.bat</code>).");
+        }
       }
     }
 
@@ -1505,14 +1542,15 @@
 
         renderSearchResults(data);
       } catch (err) {
+        const errorMsg = formatFetchError(err);
         grid.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-title" style="color: var(--accent-rose);">Search Failed</div>
-            <div class="empty-state-desc">${escapeHtml(err.message)}</div>
+            <div class="empty-state-title" style="color: var(--accent-rose);">Connection / Search Error</div>
+            <div class="empty-state-desc">${escapeHtml(errorMsg)}</div>
           </div>
         `;
         badge.textContent = "0 found";
-        showToast(`Search error: ${err.message}`, "error");
+        showToast(errorMsg, "error");
       } finally {
         searchBtn.disabled = false;
       }

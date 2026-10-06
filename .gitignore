@@ -47,4 +47,6 @@ Thumbs.db
 # Project temporary & scratch
 *.part
 *.tmp
+*.db
+data/
 .superpowers/
